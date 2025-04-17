@@ -15,7 +15,6 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 
 const Login = () => {
   const { register, handleSubmit, formState: { errors } } = useForm();
-  const navigate = useNavigate();
   const [, setToken] = useLocalStorage('token', null);
 
   const onSubmit = async (data) => {
@@ -24,7 +23,7 @@ const Login = () => {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       });
       setToken(res.data.access_token)
-      navigate('/dashboard');
+      window.location.href = "/dashboard";
     } catch (error) {
       alert('Login failed: ' + (error.response?.data?.detail || 'Unknown error'));
     }

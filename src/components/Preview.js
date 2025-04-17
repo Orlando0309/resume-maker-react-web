@@ -26,7 +26,7 @@ const Preview = () => {
         const res = await secureApi.get(`/resume/${resumeId}`);
         setResumeData(res.data);
       } catch (error) {
-        alert('Error fetching resume data: ' + (error.response?.data?.detail || 'Unknown error'));
+        console.log('Error fetching resume data: ' + (error.response?.data?.detail || 'Unknown error'));
       } finally {
         setLoading(false);
       }
@@ -39,7 +39,7 @@ const Preview = () => {
     try {
       const res = await secureApi.post(
         '/generate-resume-pdf',
-        { resume_id: resumeId, template_id: 'basic' },
+        { resume_id: resumeId, template_id: 'basic2' },
         {
           responseType: 'blob',
         }

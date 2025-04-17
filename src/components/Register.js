@@ -1,6 +1,5 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import {
  
@@ -12,6 +11,7 @@ import {
   Button,
  
 } from '@mui/material';
+import { api } from '../config/axiosconfig';
 
 
 
@@ -21,7 +21,7 @@ const Register = () => {
 
   const onSubmit = async (data) => {
     try {
-      const res = await axios.post('http://localhost:8000/register', data);
+      const res = await api.post('/register', data);
       localStorage.setItem('token', res.data.access_token);
       navigate('/dashboard');
     } catch (error) {

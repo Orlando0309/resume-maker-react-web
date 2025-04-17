@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import axios from 'axios';
 import {
   Box,
   Grid,
@@ -13,7 +12,8 @@ import {
   Typography,
   
 } from '@mui/material';
-
+import DeleteIcon from '@mui/icons-material/Delete';
+import { secureApi } from '../config/axiosconfig';
 // Helper component for Tab Panels (MUI recommended pattern)
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -45,6 +45,7 @@ const ResumeForm = () => {
     formState: { errors },
   } = useForm({
     defaultValues: {
+      title:'',
       personal_info: {
         full_name: '',
         email: '',
@@ -53,6 +54,8 @@ const ResumeForm = () => {
         linkedin: '',
         facebook: '',
         x: '',
+        summary:'',
+        github:''
       },
       experiences: [],
       educations: [],
@@ -71,7 +74,7 @@ const ResumeForm = () => {
     control,
     name: 'educations',
   });
-  const { fields: skillFields, append: appendSkill } = useFieldArray({
+  const { fields: skillFields, append: appendSkill, remove: removeSkill } = useFieldArray({
     control,
     name: 'skills',
   });
@@ -79,7 +82,7 @@ const ResumeForm = () => {
     control,
     name: 'certifications',
   });
-  const { fields: projFields, append: appendProj } = useFieldArray({
+  const { fields: projFields, append: appendProj, remove: removeProj } = useFieldArray({
     control,
     name: 'projects',
   });
@@ -88,14 +91,15 @@ const ResumeForm = () => {
   const getResume = useCallback(async () => {
     if (resumeId) {
       try {
-        const token = localStorage.getItem('token');
-        const res = await axios.get(`http://localhost:8000/resume/${resumeId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await secureApi.get(`/resume/${resumeId}`);
         // Transform used_skills from array to string for textarea display
         const transformedData = {
           ...res.data,
           projects: res.data.projects.map((project) => ({
+            ...project,
+            used_skills: project.used_skills ? project.used_skills.join(', ') : '',
+          })),
+          educations: res.data.educations.map((project) => ({
             ...project,
             used_skills: project.used_skills ? project.used_skills.join(', ') : '',
           })),
@@ -116,6 +120,10 @@ const ResumeForm = () => {
           ...project,
           used_skills: project.used_skills ? project.used_skills.join(', ') : '',
         })),
+        educations:location.state.optimizedResume.educations.map((education) => ({
+          ...education,
+          used_skills: education.used_skills ? education.used_skills.join(', ') : '',
+        }))
       };
       reset(transformedOptimized);
     } else if (resumeId) {
@@ -135,19 +143,21 @@ const ResumeForm = () => {
             ? project.used_skills.split(',').map((skill) => skill.trim())
             : [],
         })),
+
+        educations: data.educations.map((project) => ({
+          ...project,
+          used_skills: project.used_skills
+            ? project.used_skills.split(',').map((skill) => skill.trim())
+            : [],
+        })),
       };
 
-      const token = localStorage.getItem('token');
       let res;
       if (resumeId) {
-        res = await axios.put(`http://localhost:8000/resume/${resumeId}`, transformedData, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        res = await secureApi.put(`/resume/${resumeId}`, transformedData);
         alert('Resume updated successfully!');
       } else {
-        res = await axios.post('http://localhost:8000/resume', transformedData, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        res = await secureApi.post('/resume', transformedData);
         alert('Resume saved successfully!');
       }
       navigate(`/optimize/${res.data.id}`);
@@ -212,6 +222,11 @@ const ResumeForm = () => {
           label="X (Twitter) (optional)"
           {...register('personal_info.x')}
         />
+        <TextField
+          slotProps={{ inputLabel: { shrink: true } }}
+          label="Github (optional)"
+          {...register('personal_info.github')}
+        />
       </Box>
     </Paper>
   );
@@ -226,13 +241,39 @@ const ResumeForm = () => {
         textColor="primary"
         variant="scrollable"
       >
+        <Tab label="Summary" />
         <Tab label="Experience" />
         <Tab label="Education" />
         <Tab label="Skills" />
         <Tab label="Certifications" />
         <Tab label="Projects" />
       </Tabs>
-      <TabPanel value={tabValue} index={0}>
+      <TabPanel value={tabValue} index={0}> {/* Add new index */}
+        <Box sx={{ mb: 2, p: 2, border: '1px solid #ccc', borderRadius: 1 }}>
+        <TextField
+          slotProps={{ inputLabel: { shrink: true } }}
+          label="Titre"
+          type="text"
+          error={!!errors.title}
+          helperText={errors.title?.message}
+          {...register('title', { required: 'title is required' })}
+        />
+        </Box>
+        <Box sx={{ mb: 2, p: 2, border: '1px solid #ccc', borderRadius: 1 }}>
+          <TextField
+            fullWidth
+            multiline
+            slotProps={{ inputLabel: { shrink: true } }}
+            rows={4}
+            label="Professional Summary"
+            error={!!errors.personal_info?.summary}
+            helperText={errors.personal_info?.summary?.message}
+            {...register('personal_info.summary')}
+          />
+        </Box>
+      </TabPanel>
+
+      <TabPanel value={tabValue} index={1}>
         {/* Experience Section */}
         {expFields.map((field, index) => (
           <Box key={field.id} sx={{ mb: 2, p: 2, border: '1px solid #ccc', borderRadius: 1 }}>
@@ -284,7 +325,7 @@ const ResumeForm = () => {
           Add Experience
         </Button>
       </TabPanel>
-      <TabPanel value={tabValue} index={1}>
+      <TabPanel value={tabValue} index={2}>
         {/* Education Section */}
         {eduFields.map((field, index) => (
           <Box key={field.id} sx={{ mb: 2, p: 2, border: '1px solid #ccc', borderRadius: 1 }}>
@@ -308,7 +349,7 @@ const ResumeForm = () => {
               fullWidth
               type="date"
               label="Start Date"
-              InputLabelProps={{ shrink: true }}
+              slotProps={{ inputLabel: { shrink: true } }}
               error={!!errors.educations?.[index]?.start_date}
               helperText={errors.educations?.[index]?.start_date?.message}
               {...register(`educations.${index}.start_date`, { required: 'Start date is required' })}
@@ -318,8 +359,17 @@ const ResumeForm = () => {
               fullWidth
               type="date"
               label="End Date (optional)"
-              InputLabelProps={{ shrink: true }}
+              slotProps={{ inputLabel: { shrink: true } }}
               {...register(`educations.${index}.end_date`)}
+              sx={{ mb: 1 }}
+            />
+            <TextField
+              fullWidth
+              multiline
+              slotProps={{ inputLabel: { shrink: true } }}
+              label="Used Skills (comma-separated)"
+              placeholder="e.g., Python, React, SQL"
+              {...register(`educations.${index}.used_skills`)}
             />
           </Box>
         ))}
@@ -327,10 +377,20 @@ const ResumeForm = () => {
           Add Education
         </Button>
       </TabPanel>
-      <TabPanel value={tabValue} index={2}>
+      <TabPanel value={tabValue} index={3}>
         {/* Skills Section */}
         {skillFields.map((field, index) => (
           <Box key={field.id} sx={{ mb: 2, p: 2, border: '1px solid #ccc', borderRadius: 1 }}>
+            <Button
+        variant="outlined"
+        color="error"
+        size="small"
+        startIcon={<DeleteIcon />}
+        sx={{  mb:2 }}
+        onClick={() => removeSkill(index)}
+      >
+        Delete
+      </Button>
             <TextField
               fullWidth
               label="Skill"
@@ -344,7 +404,7 @@ const ResumeForm = () => {
           Add Skill
         </Button>
       </TabPanel>
-      <TabPanel value={tabValue} index={3}>
+      <TabPanel value={tabValue} index={4}>
         {/* Certifications Section */}
         {certFields.map((field, index) => (
           <Box key={field.id} sx={{ mb: 2, p: 2, border: '1px solid #ccc', borderRadius: 1 }}>
@@ -379,10 +439,20 @@ const ResumeForm = () => {
           Add Certification
         </Button>
       </TabPanel>
-      <TabPanel value={tabValue} index={4}>
+      <TabPanel value={tabValue} index={5}>
         {/* Projects Section */}
         {projFields.map((field, index) => (
           <Box key={field.id} sx={{ mb: 2, p: 2, border: '1px solid #ccc', borderRadius: 1 }}>
+            <Button
+        variant="outlined"
+        color="error"
+        size="small"
+        startIcon={<DeleteIcon />}
+        sx={{  mb:2 }}
+        onClick={() => removeProj(index)}
+      >
+        Delete
+      </Button>
             <TextField
               fullWidth
               label="Title"
