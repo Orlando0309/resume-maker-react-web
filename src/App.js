@@ -11,7 +11,7 @@ import UserProfileForm from './components/UserProfileForm';
 import { ThemeProvider } from '@mui/material';
 import { theme } from './utils';
 import GenerateResume from './components/GenerateResume';
-import { AuthProvider } from './components/AuthProvider';
+import { AuthProvider } from './provider/AuthProvider';
 const App = () => (
   <ThemeProvider theme={theme}>
     <AuthProvider>

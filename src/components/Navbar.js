@@ -10,7 +10,7 @@ import {
   MenuItem
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
-import { useAuth } from './AuthProvider';
+import { useAuth } from '../provider/AuthProvider';
 
 
 const Navbar = () => {
